@@ -1,0 +1,28 @@
+server:
+  port: 8088
+  tomcat:
+    uri-encoding: UTF-8
+
+#mybates 参考community
+mybatis:
+  base-packages: com.chat.chat.mapper
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+#数据库 参考NB
+spring:
+  datasource:
+    url: jdbc:sqlserver://127.0.0.1:1433;DatebaseName=Chat
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    username: dyy
+    password: 123456
+
+
+#分页 https://www.cnblogs.com/yy123/p/9262974.html
+pagehelper:
+  auto-dialect: sqlserver
+  reasonable: true
+  support-methods-arguments: true
+  page-size-zero: true
+  params: countSql
