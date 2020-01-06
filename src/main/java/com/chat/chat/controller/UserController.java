@@ -1,7 +1,6 @@
 package com.chat.chat.controller;
 
-import com.alibaba.fastjson.JSONObject;
-import com.chat.chat.pojo.Users;
+
 import com.chat.chat.pojo.vo.UsersVO;
 import com.chat.chat.service.UserService;
 import com.chat.chat.utils.IMoocJSONResult;
@@ -10,54 +9,88 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import com.alibaba.fastjson.JSON;
-
-import java.util.Map;
-
+import com.chat.chat.utils.FastDFSClient;
 
 @RestController
-@RequestMapping("u")
-public class UserController {
-    @Autowired
-    private UserService userService;
+    @RequestMapping("u")
+    public class UserController {
 
+        @Autowired
+        private UserService userService;
 
-//    public IMoocJSONResult registOrLogin(@RequestBody Users user) throws Exception {
-    @CrossOrigin(origins = "http://10.13.65.181:8088",maxAge = 36000)
-    @RequestMapping(value = "/registOrLogin", method = RequestMethod.POST)
-    @ResponseBody
-    public IMoocJSONResult registOrLogin(@RequestBody Map<String,String> reqMap) throws Exception {
-//        JSONObject jsonObject = JSONObject.parseObject(msg);
-        String username = reqMap.get("username");
-        String password = reqMap.get("password");
-        Users user;
-        UsersVO usersVO = new UsersVO();
-        //1. 判断用户名和密码不能为空
-        if (StringUtils.isBlank(username)||StringUtils.isBlank(password)){
-            return IMoocJSONResult.errorMsg("用户或密码不能为空哦~~~");
-        }
-        //判断用户名是否存在，存在就登录，不存在就注册
-        boolean exist = userService.isUsernameExist(username);
-        System.out.println(exist);
-        Users userResult;
-        if (exist){
-            //1.1 登录
-            userResult = userService.queryUserForLogin(username,MD5Utils.getMD5Str(password));
-            if (userResult==null){
-                return IMoocJSONResult.errorMsg("用户名或密码不正确~~~");
+        @Autowired
+        private FastDFSClient fastDFSClient;
+
+        /**
+         * @Description: 用户注册/登录
+         */
+        /**
+         * @Description: 用户注册/登录
+         */
+        @PostMapping("/registOrLogin")
+        public IMoocJSONResult registOrLogin(@RequestBody Users user) throws Exception {
+
+            // 0. 判断用户名和密码不能为空
+            if (StringUtils.isBlank(user.getUsername())
+                    || StringUtils.isBlank(user.getPassword())) {
+                return IMoocJSONResult.errorMsg("用户名或密码不能为空...");
             }
-        }else{
-            //1.2 注册
-            user = new Users();
-            user.setUsername(username);
-            user.setNickname(username);
-            user.setFaceImage("");
-            user.setFaceImageBig("");
-            user.setPassword(MD5Utils.getMD5Str(password));
-            userResult =userService.saveUser(user);
-        }
-        BeanUtils.copyProperties(userResult,usersVO);
 
-        return IMoocJSONResult.ok(usersVO);//返回给前端的用户对象
-    }
+            // 1. 判断用户名是否存在，如果存在就登录，如果不存在则注册
+            boolean usernameIsExist = userService.isUsernameExist(user.getUsername());
+            Users userResult = null;
+            if (usernameIsExist) {
+                // 1.1 登录
+                userResult = userService.queryUserForLogin(user.getUsername(),
+                        MD5Utils.getMD5Str(user.getPassword()));
+                if (userResult == null) {
+                    return IMoocJSONResult.errorMsg("用户名或密码不正确...");
+                }
+            } else {
+                // 1.2 注册
+                user.setNickname(user.getUsername());
+                user.setFaceImage("");
+                user.setFaceImageBig("");
+                user.setPassword(MD5Utils.getMD5Str(user.getPassword()));
+                userResult = userService.saveUser(user);
+            }
+
+            UsersVO userVO = new UsersVO();
+            BeanUtils.copyProperties(userResult, userVO);
+
+            return IMoocJSONResult.ok(userVO);
+        }
+    /**
+     * @Description: 上传用户头像
+     */
+//    @PostMapping("/uploadFaceBase64")
+//    public IMoocJSONResult uploadFaceBase64(@RequestBody UsersBO userBO) throws Exception {
+//
+//        // 获取前端传过来的base64字符串, 然后转换为文件对象再上传
+//        String base64Data = userBO.getFaceData();
+//        String userFacePath = "C:\\" + userBO.getUserId() + "userface64.png";
+//        FileUtils.base64ToFile(userFacePath, base64Data);
+//
+//        // 上传文件到fastdfs
+//        MultipartFile faceFile = FileUtils.fileToMultipart(userFacePath);
+//        String url = fastDFSClient.uploadBase64(faceFile);
+//        System.out.println(url);
+//
+////		"dhawuidhwaiuh3u89u98432.png"
+////		"dhawuidhwaiuh3u89u98432_80x80.png"
+//
+//        // 获取缩略图的url
+//        String thump = "_80x80.";
+//        String arr[] = url.split("\\.");
+//        String thumpImgUrl = arr[0] + thump + arr[1];
+//
+//        // 更细用户头像
+//        Users user = new Users();
+//        user.setId(userBO.getUserId());
+//        user.setFaceImage(thumpImgUrl);
+//        user.setFaceImageBig(url);
+//
+//        Users result = userService.updateUserInfo(user);
+//        return IMoocJSONResult.ok(result);
+//    }
 }

@@ -2,10 +2,7 @@ package com.chat.chat.service.impl;
 
 import com.chat.chat.mapper.UsersMapper;
 import com.chat.chat.org.n3r.idworker.Sid;
-import com.chat.chat.pojo.Users;
-import com.chat.chat.pojo.UsersExample;
 import com.chat.chat.service.UserService;
-import org.omg.CORBA.UserException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -51,4 +48,18 @@ public class UserServiceImpl implements UserService {
         usersMapper.insert(user);
         return user;//因为还要把该用户返回到前端
     }
+
+
+        @Transactional(propagation = Propagation.REQUIRED)
+        @Override
+        public Users updateUserInfo(Users user) {
+            usersMapper.updateByPrimaryKeySelective(user);
+            return queryUserById(user.getId());
+        }
+
+    @Transactional(propagation = Propagation.SUPPORTS)
+    Users queryUserById(String userId) {
+        return usersMapper.selectByPrimaryKey(userId);
+    }
+
 }

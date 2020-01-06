@@ -3,7 +3,7 @@ server:
   tomcat:
     uri-encoding: UTF-8
 
-#mybates 参考community
+#mybatis 参考community
 mybatis:
   base-packages: com.chat.chat.mapper
   mapper-locations: classpath:mapper/*.xml

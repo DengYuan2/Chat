@@ -2,38 +2,47 @@ package com.chat.chat.netty;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import org.springframework.stereotype.Component;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
+import io.netty.handler.stream.ChunkedWriteHandler;
 
-@Component
 public class WSServer {
-    private EventLoopGroup mainGroup;
-    private EventLoopGroup subGroup;
-    private ServerBootstrap server;
-    private ChannelFuture future;
-
-    //单例
-    private static class SingletionWSServer{//开始就实例化
-        static final WSServer instance = new WSServer();
+    private final int port;
+    public WSServer(int port) {
+        this.port = port;
     }
-    public static WSServer getInstance(){
-        return SingletionWSServer.instance;
+    public void start() throws Exception {
+        EventLoopGroup bossGroup = new NioEventLoopGroup();
+        EventLoopGroup group = new NioEventLoopGroup();
+        try {
+            ServerBootstrap sb = new ServerBootstrap();
+            sb.option(ChannelOption.SO_BACKLOG, 1024);
+            sb.group(group, bossGroup)
+                    .channel(NioServerSocketChannel.class)
+                    .localAddress(this.port)
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(SocketChannel ch) throws Exception {
+                            ch.pipeline().addLast(new HttpServerCodec());
+                            ch.pipeline().addLast(new ChunkedWriteHandler());
+                            ch.pipeline().addLast(new HttpObjectAggregator(8192));
+                            ch.pipeline().addLast(new WebSocketServerProtocolHandler("/ws", null, true, 65536 * 10));
+                            ch.pipeline().addLast(new ChatHandler());
+                        }
+                    });
+            ChannelFuture cf = sb.bind().sync();
+            cf.channel().closeFuture().sync();
+        } finally {
+            group.shutdownGracefully().sync();
+            bossGroup.shutdownGracefully().sync();
+        }
     }
-
-    public WSServer(){
-        mainGroup = new NioEventLoopGroup();
-        subGroup = new NioEventLoopGroup();
-        server = new ServerBootstrap();
-        server.group(mainGroup,subGroup)
-                .channel(NioServerSocketChannel.class)
-                .childHandler(new WSServerInitializer());
-    }
-
-    public void start(){
-        this.future=server.bind(8088);
-        System.err.println("netty websocket server 启动完毕！");
-    }//不再需要shutdown等，因为在springboot容器中？
-
 }
+
